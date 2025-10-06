@@ -1,0 +1,1 @@
+{"version":3,"file":"adopcion.d.ts","sourceRoot":"","sources":["../../../src/Domain/entities/adopcion.ts"],"names":[],"mappings":"AAKA,MAAM,WAAW,QAAQ;IACrB,WAAW,EAAE,MAAM,CAAC;IACpB,cAAc,EAAE,IAAI,CAAC;IACrB,MAAM,EAAE,MAAM,CAAC;IACf,cAAc,EAAE,MAAM,CAAC;IACvB,UAAU,EAAE,MAAM,CAAC;CACtB;AAED,wBAAgB,iBAAiB,CAAC,IAAI,EAAE,IAAI,CAAC,QAAQ,EAAE,aAAa,GAAG,gBAAgB,CAAC,GAAG,QAAQ,CASlG"}

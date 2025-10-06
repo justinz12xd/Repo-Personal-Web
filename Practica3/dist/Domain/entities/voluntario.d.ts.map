@@ -1,0 +1,1 @@
+{"version":3,"file":"voluntario.d.ts","sourceRoot":"","sources":["../../../src/Domain/entities/voluntario.ts"],"names":[],"mappings":"AAEA,MAAM,WAAW,UAAU;IACvB,aAAa,EAAE,MAAM,CAAC;IACtB,GAAG,EAAE,MAAM,CAAC;IACZ,MAAM,EAAE,MAAM,CAAC;IACf,UAAU,EAAE,MAAM,CAAC;IACnB,WAAW,EAAE,MAAM,CAAC;CACvB;AAED,wBAAgB,mBAAmB,CAAC,IAAI,EAAE,IAAI,CAAC,UAAU,EAAE,eAAe,CAAC,GAAG,UAAU,CASvF"}

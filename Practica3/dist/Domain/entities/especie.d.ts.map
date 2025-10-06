@@ -1,0 +1,1 @@
+{"version":3,"file":"especie.d.ts","sourceRoot":"","sources":["../../../src/Domain/entities/especie.ts"],"names":[],"mappings":"AAOA,MAAM,WAAW,OAAO;IACpB,UAAU,EAAE,MAAM,CAAC;IACnB,MAAM,EAAE,MAAM,CAAC;CAClB;AAED,wBAAgB,gBAAgB,CAAC,IAAI,EAAE,IAAI,CAAC,OAAO,EAAE,YAAY,CAAC,GAAG,OAAO,CAM3E"}

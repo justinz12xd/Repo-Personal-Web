@@ -1,0 +1,1 @@
+{"version":3,"file":"supervisor.d.ts","sourceRoot":"","sources":["../../../src/Domain/entities/supervisor.ts"],"names":[],"mappings":"AAEA,MAAM,WAAW,UAAU;IACvB,aAAa,EAAE,MAAM,CAAC;IACtB,MAAM,EAAE,MAAM,CAAC;IACf,cAAc,EAAE,MAAM,CAAC;IACvB,UAAU,CAAC,EAAE,MAAM,CAAC;IACpB,SAAS,CAAC,EAAE,MAAM,CAAC;CACtB;AAED,wBAAgB,mBAAmB,CAAC,IAAI,EAAE,IAAI,CAAC,UAAU,EAAE,eAAe,CAAC,GAAG,UAAU,CAOvF"}
