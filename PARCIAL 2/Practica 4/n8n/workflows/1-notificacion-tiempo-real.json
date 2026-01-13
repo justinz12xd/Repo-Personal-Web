@@ -1,0 +1,172 @@
+{
+  "name": "Workflow 1: Notificación Adopción - Tiempo Real",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "adoption-workflow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "adoption-workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Genera un mensaje de notificación corto y amigable (máximo 150 caracteres) para informar que {{ $json.data.adopter_name }} ha completado la adopción de un animal. El mensaje debe ser en español, celebratorio y motivador. Solo responde con el mensaje, sin explicaciones.\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "gemini-generate-message",
+      "name": "Gemini - Generar Mensaje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "gemini-api",
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "msg-gemini",
+              "name": "mensaje_gemini",
+              "type": "string",
+              "value": "={{ $json.candidates[0].content.parts[0].text }}"
+            },
+            {
+              "id": "adopter",
+              "name": "adopter_name",
+              "type": "string",
+              "value": "={{ $input.first().json.data.adopter_name }}"
+            },
+            {
+              "id": "adoption-id",
+              "name": "adoption_id",
+              "type": "string",
+              "value": "={{ $input.first().json.data.adoption_id }}"
+            },
+            {
+              "id": "animal-id",
+              "name": "animal_id",
+              "type": "string",
+              "value": "={{ $input.first().json.data.animal_id }}"
+            },
+            {
+              "id": "ts",
+              "name": "timestamp",
+              "type": "string",
+              "value": "={{ $input.first().json.timestamp }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "combine-data",
+      "name": "Combinar Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $credentials.telegramApi?.chatId || '' }}",
+        "text": "=🎉 *Nueva Adopción Completada*\n\n{{ $json.mensaje_gemini }}\n\n📋 *Detalles:*\n• Adoptante: {{ $json.adopter_name }}\n• ID Adopción: `{{ $json.adoption_id }}`\n• Animal ID: `{{ $json.animal_id }}`\n• Fecha: {{ $json.timestamp }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-notification",
+      "name": "Telegram - Notificar",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [850, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Notificación enviada exitosamente\",\n  \"event_id\": \"{{ $('Webhook Trigger').first().json.id }}\",\n  \"workflow\": \"notificacion-tiempo-real\"\n}"
+      },
+      "id": "respond-success",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Generar Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Generar Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Combinar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combinar Datos": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Notificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram - Notificar": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2",
+  "meta": {
+    "instanceId": "local-n8n"
+  },
+  "tags": []
+}

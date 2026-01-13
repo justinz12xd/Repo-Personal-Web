@@ -1,0 +1,165 @@
+{
+  "name": "Workflow 2: Sincronización Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sheets-sync-workflow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger-sheets",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "sheets-sync-workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fecha",
+              "name": "FECHA/HORA",
+              "type": "string",
+              "value": "={{ new Date($json.timestamp || Date.now()).toLocaleString('es-EC', { timeZone: 'America/Guayaquil' }) }}"
+            },
+            {
+              "id": "tipo",
+              "name": "Tipo Evento",
+              "type": "string",
+              "value": "={{ $json.event }}"
+            },
+            {
+              "id": "id-reg",
+              "name": "ID registro",
+              "type": "string",
+              "value": "={{ $json.data?.adoption_id || $json.data?.animal_id || $json.id }}"
+            },
+            {
+              "id": "desc",
+              "name": "Descripción",
+              "type": "string",
+              "value": "={{ $json.event === 'adoption.completed' ? 'Adopción completada por ' + ($json.data?.adopter_name || 'N/A') : 'Evento: ' + $json.event }}"
+            },
+            {
+              "id": "user",
+              "name": "Usuario",
+              "type": "string",
+              "value": "={{ $json.data?.adopter_name || $json.data?.user || 'Sistema' }}"
+            },
+            {
+              "id": "estado",
+              "name": "Estado",
+              "type": "string",
+              "value": "={{ $json.data?.status || 'completed' }}"
+            },
+            {
+              "id": "animal",
+              "name": "Animal ID",
+              "type": "string",
+              "value": "={{ $json.data?.animal_id || 'N/A' }}"
+            },
+            {
+              "id": "corr",
+              "name": "Correlation ID",
+              "type": "string",
+              "value": "={{ $json.metadata?.correlation_id || $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "structure-data",
+      "name": "Estructurar Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Selecciona tu Google Sheet"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Eventos"
+        },
+        "dataMode": "autoMapInputData",
+        "options": {}
+      },
+      "id": "append-to-sheets",
+      "name": "Google Sheets - Agregar",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [650, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Registro agregado a Google Sheets\",\n  \"event_id\": \"{{ $('Webhook Trigger').item.json.id }}\",\n  \"workflow\": \"sheets-sync\"\n}"
+      },
+      "id": "respond-success-sheets",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Estructurar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estructurar Datos": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Agregar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Agregar": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2",
+  "meta": {
+    "instanceId": "local-n8n"
+  },
+  "tags": []
+}

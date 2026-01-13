@@ -1,0 +1,429 @@
+{
+  "name": "Workflow 3: Alertas Inteligentes",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "smart-alerts-workflow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger-alerts",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 400],
+      "webhookId": "smart-alerts-workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "event",
+              "name": "event",
+              "type": "string",
+              "value": "={{ $json.body?.event || $json.event || '' }}"
+            },
+            {
+              "id": "id",
+              "name": "id",
+              "type": "string",
+              "value": "={{ $json.body?.id || $json.id || '' }}"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "type": "string",
+              "value": "={{ $json.body?.data?.status || $json.data?.status || '' }}"
+            },
+            {
+              "id": "data",
+              "name": "data",
+              "type": "object",
+              "value": "={{ $json.body?.data || $json.data || {} }}"
+            },
+            {
+              "id": "urgencia",
+              "name": "urgencia",
+              "type": "string",
+              "value": "={{ (() => { const data = $json.body?.data || $json.data || {}; const evt = ($json.body?.event || $json.event || '').toLowerCase(); const status = (data.status || '').toLowerCase(); const animalesDisponibles = data.animales_disponibles ?? data.stock ?? 999; const diasPendiente = data.dias_pendiente ?? data.dias_vencido ?? 0; const periodoPrueba = data.dias_restantes_prueba ?? 999; const pocosAnimales = data.pocos_animales ?? false; if (animalesDisponibles === 0 || diasPendiente > 7 || evt.includes('cancel') || evt.includes('error') || status === 'cancelled' || status === 'error') return 'ALTA'; if (animalesDisponibles < 5 || periodoPrueba < 3 || pocosAnimales || status === 'pending' || evt.includes('pending')) return 'MEDIA'; return 'BAJA'; })() }}"
+            },
+            {
+              "id": "razon",
+              "name": "razon",
+              "type": "string",
+              "value": "={{ (() => { const data = $json.body?.data || $json.data || {}; const evt = ($json.body?.event || $json.event || '').toLowerCase(); const status = (data.status || '').toLowerCase(); const animalesDisponibles = data.animales_disponibles ?? data.stock ?? 999; const diasPendiente = data.dias_pendiente ?? data.dias_vencido ?? 0; const periodoPrueba = data.dias_restantes_prueba ?? 999; if (animalesDisponibles === 0) return 'Sin animales disponibles para adopción'; if (diasPendiente > 7) return 'Adopción pendiente más de 7 días'; if (evt.includes('cancel') || status === 'cancelled') return 'Adopción cancelada'; if (evt.includes('error') || status === 'error') return 'Error en proceso de adopción'; if (animalesDisponibles < 5) return 'Pocos animales disponibles (' + animalesDisponibles + ')'; if (periodoPrueba < 3) return 'Período de prueba próximo a vencer (' + periodoPrueba + ' días)'; if (status === 'pending' || evt.includes('pending')) return 'Adopción pendiente de aprobación'; return 'Evento normal procesado'; })() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "classify-urgency",
+      "name": "Clasificar Urgencia",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { contents: [{ parts: [{ text: 'Genera un mensaje de alerta corto (máximo 100 caracteres) en español para notificar sobre este evento: ' + $json.event + ' con urgencia ' + $json.urgencia + '. Solo responde con el mensaje, sin explicaciones.' }] }] } }}",
+        "options": {}
+      },
+      "id": "gemini-message",
+      "name": "Gemini - Generar Mensaje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [650, 400],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "gemini-api",
+          "name": "Gemini API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "msg",
+              "name": "mensaje_gemini",
+              "type": "string",
+              "value": "={{ $json.candidates ? $json.candidates[0].content.parts[0].text : 'Alerta del sistema' }}"
+            },
+            {
+              "id": "urgencia2",
+              "name": "urgencia",
+              "type": "string",
+              "value": "={{ $('Clasificar Urgencia').item.json.urgencia }}"
+            },
+            {
+              "id": "razon2",
+              "name": "razon",
+              "type": "string",
+              "value": "={{ $('Clasificar Urgencia').item.json.razon }}"
+            },
+            {
+              "id": "event2",
+              "name": "original_event",
+              "type": "string",
+              "value": "={{ $('Clasificar Urgencia').item.json.event }}"
+            },
+            {
+              "id": "id2",
+              "name": "original_id",
+              "type": "string",
+              "value": "={{ $('Clasificar Urgencia').item.json.id }}"
+            },
+            {
+              "id": "data2",
+              "name": "original_data",
+              "type": "object",
+              "value": "={{ $('Clasificar Urgencia').item.json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "combine-data",
+      "name": "Combinar Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.urgencia }}",
+                    "rightValue": "ALTA"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "alta"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.urgencia }}",
+                    "rightValue": "MEDIA"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "media"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.urgencia }}",
+                    "rightValue": "BAJA"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "baja"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "switch-urgency",
+      "name": "Switch por Urgencia",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $credentials.telegramApi?.chatId || '' }}",
+        "text": "=🚨 *ALERTA ADOPCIONES - URGENCIA ALTA*\n\n{{ $json.mensaje_gemini }}\n\n🐾 *Evento:* {{ $json.original_event }}\n🆔 *ID:* {{ $json.original_id }}\n📋 *Razón:* {{ $json.razon }}\n\n⚠️ *Requiere atención inmediata del equipo*",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-high",
+      "name": "Telegram - Alta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1250, 250],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $credentials.gmailOAuth2?.email || 'admin@example.com' }}",
+        "subject": "=🐾 Alerta Adopciones - {{ $json.original_event }}",
+        "message": "=<h2>⚠️ Alerta de Adopciones - Urgencia Media</h2><br><p>{{ $json.mensaje_gemini }}</p><br><br><strong>🐾 Evento:</strong> {{ $json.original_event }}<br><strong>🆔 ID:</strong> {{ $json.original_id }}<br><strong>📋 Razón:</strong> {{ $json.razon }}<br><br><p><em>Este mensaje fue generado automáticamente por el sistema de alertas inteligentes.</em></p>",
+        "options": {}
+      },
+      "id": "gmail-medium",
+      "name": "Gmail - Media",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1250, 400],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "log-status",
+              "name": "status",
+              "type": "string",
+              "value": "logged"
+            },
+            {
+              "id": "log-urgencia",
+              "name": "urgencia",
+              "type": "string",
+              "value": "={{ $json.urgencia }}"
+            },
+            {
+              "id": "log-event",
+              "name": "event",
+              "type": "string",
+              "value": "={{ $json.original_event }}"
+            },
+            {
+              "id": "log-ts",
+              "name": "timestamp",
+              "type": "string",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-low",
+      "name": "Log - Baja",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1250, 550]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Alerta procesada', urgency: $json.urgencia || 'UNKNOWN', action_taken: 'notification_sent', workflow: 'smart-alerts' } }}"
+      },
+      "id": "respond-alerts",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1450, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Clasificar Urgencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar Urgencia": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Generar Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Generar Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Combinar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combinar Datos": {
+      "main": [
+        [
+          {
+            "node": "Switch por Urgencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch por Urgencia": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Alta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log - Baja",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram - Alta": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Media": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log - Baja": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3",
+  "meta": {
+    "instanceId": "local-n8n"
+  },
+  "tags": []
+}
